@@ -1,3 +1,5 @@
+import AdventOfCode.Common.Result
+
 structure Move where
   count: Nat
   src: Nat
@@ -8,17 +10,6 @@ def Crate: Type := Char
 def Column: Type := List Crate
 
 def CratesState: Type := Array Column
-
-def Result(α : Type): Type := Except String α
-
-instance : Applicative Result where
-  pure := Except.ok
-  seq mf mx := mf.bind (fun f => (mx ()).map f)
-
-instance : Bind Result where
-  bind := Except.bind
-
-instance : Monad Result where
 
 def parseNat(input: String.Slice): Result Nat :=
   match input.toNat? with
