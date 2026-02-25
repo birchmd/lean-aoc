@@ -1,6 +1,5 @@
 import AdventOfCode.Common.Result
 import Std.Data.HashSet
-import Init.Util
 
 structure Point where
   x: Int
