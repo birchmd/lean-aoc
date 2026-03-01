@@ -39,11 +39,11 @@ def parseElevation (byte: UInt8): Result Elevation :=
   else
     Except.error "Unknown height"
 
-def parseElevationGrid (input: String): Result (Grid2D Elevation) := parseGrid parseElevation input
+def parseElevationGrid (input: String): Result ((nRows: Nat) × (nCols : Nat) × (Grid2D Elevation nRows nCols)) := parseGrid parseElevation input
 
-structure BfsState where
-  grid: Grid2D Elevation
-  visited: Std.HashSet ((Fin grid.nRows) × Fin (grid.nCols))
+structure BfsState (nRows nCols: Nat) where
+  grid: Grid2D Elevation nRows nCols
+  visited: Std.HashSet ((Fin nRows) × Fin (nCols))
   queue: Std.Queue (Nat × grid.Position)
   -- TODO: this is only used to show termination of the `bfs` function.
   -- But it should not be needed because `bfs` does terminate since
@@ -51,14 +51,14 @@ structure BfsState where
   -- How can we prove this to Lean?
   bound: Nat
 
-def startStateAt (f: Elevation → Bool) (grid: Grid2D Elevation): Result BfsState :=
+def startStateAt (f: Elevation → Bool) (grid: Grid2D Elevation nRows nCols): Result (BfsState nRows nCols) :=
   match grid.find? f with
   | some position =>
     let queue := Std.Queue.empty
-    Except.ok ⟨grid, Std.HashSet.ofList [], queue.enqueue (0, position), 4 * grid.nRows * grid.nCols⟩
+    Except.ok ⟨grid, Std.HashSet.ofList [], queue.enqueue (0, position), 4 * nRows * nCols⟩
   | none => Except.error "Start not found!"
 
-def bfs (state: BfsState) (isNeighbor: state.grid.Position → state.grid.Position → Bool) (condition: state.grid.Position → Bool): Result Nat :=
+def bfs (state: BfsState nRows nCols) (isNeighbor: state.grid.Position → state.grid.Position → Bool) (condition: state.grid.Position → Bool): Result Nat :=
   if state.bound = 0 then Except.error "BFS hit iteration bound"
   else
     do
@@ -73,21 +73,21 @@ def bfs (state: BfsState) (isNeighbor: state.grid.Position → state.grid.Positi
           let queue := position.neighbors.foldl (enqueueNeighbors (isNeighbor position) (nSteps + 1) visited) queue
           bfs ⟨state.grid, visited, queue, state.bound - 1⟩ isNeighbor condition
   termination_by state.bound
-  where enqueueNeighbors {grid: Grid2D Elevation} (isNeighbor: grid.Position → Bool) (steps: Nat) (visited: Std.HashSet ((Fin grid.nRows) × Fin (grid.nCols))) (queue: Std.Queue (Nat × grid.Position)) (position: grid.Position): Std.Queue (Nat × grid.Position) :=
+  where enqueueNeighbors {grid: Grid2D Elevation nRows nCols} (isNeighbor: grid.Position → Bool) (steps: Nat) (visited: Std.HashSet ((Fin nRows) × Fin (nCols))) (queue: Std.Queue (Nat × grid.Position)) (position: grid.Position): Std.Queue (Nat × grid.Position) :=
     if visited.contains position.finPair then queue
     else if isNeighbor position then queue.enqueue (steps, position)
     else queue
 
-def isNeighbor {grid: Grid2D Elevation} (src: grid.Position) (dst: grid.Position): Bool :=
+def isNeighbor {grid: Grid2D Elevation nRows nCols} (src: grid.Position) (dst: grid.Position): Bool :=
     dst.get.height.val ≤ src.get.height.val + 1
 
 def part1Solution(input: String): Result Nat := do
-  let grid ← parseElevationGrid input
+  let ⟨_, _, grid⟩ ← parseElevationGrid input
   let state ← startStateAt Elevation.isStart grid
   bfs state isNeighbor (fun p => p.get.isEnd)
 
 def part2Solution(input: String): Result Nat := do
-  let grid ← parseElevationGrid input
+  let ⟨_, _, grid⟩ ← parseElevationGrid input
   -- Run the BFS backwards by starting at the end and reversing
   -- the  neighbor check.
   let state ← startStateAt Elevation.isEnd grid

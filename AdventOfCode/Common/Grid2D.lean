@@ -4,29 +4,27 @@ notation (name := newLine) "newLine!" => 10
 notation (name := zeroDigit) "zeroDigit!" => 48
 notation (name := nineDigit) "nineDigit!" => 57
 
-structure Grid2D α where
-  nRows: Nat
-  nCols: Nat
+structure Grid2D α (nRows: Nat) (nCols: Nat) where
   inner: Vector α (nRows * nCols)
 
-instance [ToString α] : ToString (Grid2D α) where
-  toString grid := s!"Grid ({grid.nRows}x{grid.nCols}) {grid.inner.toArray}"
+instance [ToString α] : ToString (Grid2D α nRows nCols) where
+  toString grid := s!"Grid ({nRows}x{nCols}) {grid.inner.toArray}"
 
-structure Grid2D.Position (grid: Grid2D α) where
+structure Grid2D.Position (grid: Grid2D α nRows nCols) where
   i: Nat
   j: Nat
-  row_in_bounds: i < grid.nRows
-  col_in_bounds: j < grid.nCols
+  row_in_bounds: i < nRows
+  col_in_bounds: j < nCols
 
-structure Grid2D.Col α where
-  grid: Grid2D α
+structure Grid2D.Col α nRows nCols where
+  grid: Grid2D α nRows nCols
   j: Nat
-  col_in_bounds: j < grid.nCols
+  col_in_bounds: j < nCols
 
-structure Grid2D.Row α where
-  grid: Grid2D α
+structure Grid2D.Row α nRows nCols where
+  grid: Grid2D α nRows nCols
   i: Nat
-  row_in_bounds: i < grid.nRows
+  row_in_bounds: i < nRows
 
 def parseDigit (byte: UInt8): Result (Fin 10) :=
   let x := byte.toNat
@@ -35,7 +33,7 @@ def parseDigit (byte: UInt8): Result (Fin 10) :=
   else
     Except.error s!"Given byte {byte} is not a digit"
 
-def parseGrid (parser: UInt8 → Result α) (input: String): Result (Grid2D α) :=
+def parseGrid (parser: UInt8 → Result α) (input: String): Result ((nRows: Nat) × (nCols: Nat) × (Grid2D α nRows nCols)) :=
   let slice := input.trimAscii
   let nCols := ((slice.find? "\n").map (fun p => p.offset.byteIdx)).getD slice.utf8ByteSize
   let bytesArrResult := ((slice.bytes.filter (fun b => b != newLine!)).mapM parser).toArray
@@ -43,12 +41,12 @@ def parseGrid (parser: UInt8 → Result α) (input: String): Result (Grid2D α) 
     let nRows := bytesArr.size / nCols
     if correct_size: bytesArr.size = nRows * nCols then
       let inner: Vector α (nRows * nCols) := ⟨ bytesArr, correct_size ⟩
-      pure ⟨ nRows, nCols, inner ⟩
+      pure ⟨ nRows, nCols, ⟨inner⟩ ⟩
     else
       Except.error "Input size is not a rectangular grid"
   )
 
-def parseDigitGrid (input: String): Result (Grid2D (Fin 10)) := parseGrid parseDigit input
+def parseDigitGrid (input: String): Result ((nRows: Nat) × (nCols: Nat) × (Grid2D (Fin 10) nRows nCols)) := parseGrid parseDigit input
 
 -- Theorem proving if the row index and column index are in bounds then
 -- the index into the linearized array is also in bounds.
@@ -82,15 +80,21 @@ def lin_index_to_row_col (index: Fin (n * m)): (Fin n) × (Fin m) :=
   let j := ⟨index % m, Nat.mod_lt index h2⟩
   (i, j)
 
-def Grid2D.get (grid: Grid2D α) (i: Fin grid.nRows) (j: Fin grid.nCols): α :=
-    let index := i.val * grid.nCols + j.val
-    have h := index_in_bounds i.val j.val grid.nRows grid.nCols i.isLt j.isLt
+def Grid2D.get (grid: Grid2D α nRows nCols) (i: Fin nRows) (j: Fin nCols): α :=
+    let index := i.val * nCols + j.val
+    have h := index_in_bounds i.val j.val nRows nCols i.isLt j.isLt
     grid.inner[index]
 
-def Grid2D.Position.get {grid: Grid2D α} (p: grid.Position): α :=
+def Grid2D.set (grid: Grid2D α nRows nCols) (i: Fin nRows) (j: Fin nCols) (x: α): Grid2D α nRows nCols :=
+    let index := i.val * nCols + j.val
+    have h := index_in_bounds i.val j.val nRows nCols i.isLt j.isLt
+    let inner := grid.inner.set index x
+    ⟨inner⟩
+
+def Grid2D.Position.get {grid: Grid2D α nRows nCols} (p: grid.Position): α :=
   grid.get ⟨p.i, p.row_in_bounds⟩ ⟨p.j, p.col_in_bounds⟩
 
-def Grid2D.Position.neighbors {grid: Grid2D α} (p: grid.Position): Array (grid.Position) :=
+def Grid2D.Position.neighbors {grid: Grid2D α nRows nCols} (p: grid.Position): Array (grid.Position) :=
   let ⟨l, r⟩ := predSucc ⟨p.i, p.row_in_bounds⟩
   let ⟨u, d⟩ := predSucc ⟨p.j, p.col_in_bounds⟩
   let lr := #[l, r].filterMap (fun x => x)
@@ -104,58 +108,58 @@ def Grid2D.Position.neighbors {grid: Grid2D α} (p: grid.Position): Array (grid.
     let right := if h: x.val < n - 1 then some ⟨x + 1, by omega⟩ else none
     (left, right)
 
-def Grid2D.Position.finPair {grid: Grid2D α} (p: grid.Position): (Fin grid.nRows) × (Fin grid.nCols) :=
+def Grid2D.Position.finPair {grid: Grid2D α nRows nCols} (p: grid.Position): (Fin nRows) × (Fin nCols) :=
   (⟨p.i, p.row_in_bounds⟩, ⟨p.j, p.col_in_bounds⟩)
 
-def Grid2D.row (grid: Grid2D α) (i: Nat) (row_in_bounds: i < grid.nRows): Grid2D.Row α :=
+def Grid2D.row (grid: Grid2D α nRows nCols) (i: Nat) (row_in_bounds: i < nRows): Grid2D.Row α nRows nCols :=
   ⟨ grid, i, row_in_bounds ⟩
 
-def Grid2D.col (grid: Grid2D α) (j: Nat) (col_in_bounds: j < grid.nCols): Grid2D.Col α :=
+def Grid2D.col (grid: Grid2D α nRows nCols) (j: Nat) (col_in_bounds: j < nCols): Grid2D.Col α nRows nCols :=
   ⟨ grid, j, col_in_bounds ⟩
 
-def Grid2D.Row.foldl (row: Grid2D.Row α) (f: β → α → β) (init: β): β :=
+def Grid2D.Row.foldl (row: Grid2D.Row α nRows nCols) (f: β → α → β) (init: β): β :=
   let grid := row.grid
-  let start := row.i * grid.nCols
-  let stop := start + grid.nCols
+  let start := row.i * nCols
+  let stop := start + nCols
   let subarray := grid.inner.toArray.toSubarray start stop
   subarray.foldl f init
 
-def Grid2D.Col.foldl (col: Grid2D.Col α) (f: β → α → β) (init: β): β :=
-  Fin.foldl col.grid.nRows loop init
-  where loop (acc: β) (i: Fin col.grid.nRows): β :=
-    let index := i.val * col.grid.nCols + col.j
-    have h := index_in_bounds i.val col.j col.grid.nRows col.grid.nCols i.isLt col.col_in_bounds
+def Grid2D.Col.foldl (col: Grid2D.Col α nRows nCols) (f: β → α → β) (init: β): β :=
+  Fin.foldl nRows loop init
+  where loop (acc: β) (i: Fin nRows): β :=
+    let index := i.val * nCols + col.j
+    have h := index_in_bounds i.val col.j nRows nCols i.isLt col.col_in_bounds
     let el := col.grid.inner[index]
     (f acc el)
 
-def Grid2D.Row.foldr (row: Grid2D.Row α) (f: α → β → β) (init: β): β :=
+def Grid2D.Row.foldr (row: Grid2D.Row α nRows nCols) (f: α → β → β) (init: β): β :=
   let grid := row.grid
-  let start := row.i * grid.nCols
-  let stop := start + grid.nCols
+  let start := row.i * nCols
+  let stop := start + nCols
   let subarray := grid.inner.toArray.toSubarray start stop
   subarray.foldr f init
 
-def Grid2D.Col.foldr (col: Grid2D.Col α) (f: α → β → β) (init: β): β :=
-  Fin.foldr col.grid.nRows loop init
-  where loop (i: Fin col.grid.nRows) (acc: β): β :=
-    let index := i.val * col.grid.nCols + col.j
-    have h := index_in_bounds i.val col.j col.grid.nRows col.grid.nCols i.isLt col.col_in_bounds
+def Grid2D.Col.foldr (col: Grid2D.Col α nRows nCols) (f: α → β → β) (init: β): β :=
+  Fin.foldr nRows loop init
+  where loop (i: Fin nRows) (acc: β): β :=
+    let index := i.val * nCols + col.j
+    have h := index_in_bounds i.val col.j nRows nCols i.isLt col.col_in_bounds
     let el := col.grid.inner[index]
     (f el acc)
 
-def Grid2D.foldRows (grid: Grid2D α) (f: β → Grid2D.Row α → β) (init: β): β :=
-  Fin.foldl grid.nRows loop init
-  where loop (acc: β) (i: Fin grid.nRows): β :=
+def Grid2D.foldRows (grid: Grid2D α nRows nCols) (f: β → Grid2D.Row α nRows nCols → β) (init: β): β :=
+  Fin.foldl nRows loop init
+  where loop (acc: β) (i: Fin nRows): β :=
     let row := grid.row i.val i.isLt
     (f acc row)
 
-def Grid2D.foldCols (grid: Grid2D α) (f: β → Grid2D.Col α → β) (init: β): β :=
-  Fin.foldl grid.nCols loop init
-  where loop (acc: β) (j: Fin grid.nCols): β :=
+def Grid2D.foldCols (grid: Grid2D α nRows nCols) (f: β → Grid2D.Col α nRows nCols → β) (init: β): β :=
+  Fin.foldl nCols loop init
+  where loop (acc: β) (j: Fin nCols): β :=
     let col := grid.col j.val j.isLt
     (f acc col)
 
-def Grid2D.find? (grid: Grid2D α) (f: α → Bool): Option (grid.Position) := do
+def Grid2D.find? (grid: Grid2D α nRows nCols) (f: α → Bool): Option (grid.Position) := do
   let index ← grid.inner.findFinIdx? f
   let ⟨i, j⟩ := lin_index_to_row_col index
   pure ⟨i.val, j.val, i.is_lt, j.is_lt⟩

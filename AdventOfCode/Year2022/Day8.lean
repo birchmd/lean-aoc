@@ -25,13 +25,13 @@ def TreeCount.prevRow (tc: TreeCount): TreeCount := ⟨ tc.seen, tc.i - 1, tc.j,
 def TreeCount.prevCol (tc: TreeCount): TreeCount := ⟨ tc.seen, tc.i, tc.j - 1, tc.lb ⟩
 def TreeCount.resetBound(tc: TreeCount): TreeCount := ⟨ tc.seen, tc.i, tc.j, none ⟩
 
-def countTreesInRow (tc: TreeCount) (row: Grid2D.Row (Fin 10)): TreeCount :=
+def countTreesInRow (tc: TreeCount) (row: Grid2D.Row (Fin 10) nRows nCols): TreeCount :=
   let x: TreeCount → (Fin 10) → TreeCount := fun tc digit => (tc.checkedInsert digit).nextCol
   let y: (Fin 10) → TreeCount → TreeCount := fun digit tc => tc.prevCol.checkedInsert digit
   let state: TreeCount := ⟨ tc.seen, row.i, 0, none ⟩
   row.foldr y (row.foldl x state).resetBound
 
-def countTreesInCol (tc: TreeCount) (col: Grid2D.Col (Fin 10)): TreeCount :=
+def countTreesInCol (tc: TreeCount) (col: Grid2D.Col (Fin 10) nRows nCols): TreeCount :=
   let x: TreeCount → (Fin 10) → TreeCount := fun tc digit => (tc.checkedInsert digit).nextRow
   let y: (Fin 10) → TreeCount → TreeCount := fun digit tc => tc.prevRow.checkedInsert digit
   let state: TreeCount := ⟨ tc.seen, 0, col.j, none ⟩
@@ -39,14 +39,14 @@ def countTreesInCol (tc: TreeCount) (col: Grid2D.Col (Fin 10)): TreeCount :=
 
 -- TODO: seems like there is a lot of code duplication between the
 -- various `viewingDistance` functions. Is there a way to unify them?
-def viewingDistanceLeft (grid: Grid2D (Fin 10)) (i: Fin grid.nRows) (j: Fin grid.nCols): Nat :=
+def viewingDistanceLeft (grid: Grid2D (Fin 10) nRows nCols) (i: Fin nRows) (j: Fin nCols): Nat :=
   if j.val == 0 then
     0
   else
     let bound := grid.get i j
     loop (j.val - 1) (by omega) bound 1
-  where loop (j: Nat) (h: j < grid.nCols) (bound: Fin 10) (dist: Nat): Nat :=
-    let fj: Fin grid.nCols := ⟨j, h⟩
+  where loop (j: Nat) (h: j < nCols) (bound: Fin 10) (dist: Nat): Nat :=
+    let fj: Fin nCols := ⟨j, h⟩
     match j with
     | 0 => dist
     | Nat.succ jm1 =>
@@ -54,29 +54,29 @@ def viewingDistanceLeft (grid: Grid2D (Fin 10)) (i: Fin grid.nRows) (j: Fin grid
         dist
       else loop jm1 (by omega) bound (dist + 1)
 
-def viewingDistanceRight (grid: Grid2D (Fin 10)) (i: Fin grid.nRows) (j: Fin grid.nCols): Nat :=
-  if h: j.val + 1 = grid.nCols then
+def viewingDistanceRight (grid: Grid2D (Fin 10) nRows nCols) (i: Fin nRows) (j: Fin nCols): Nat :=
+  if h: j.val + 1 = nCols then
     0
   else
     let bound := grid.get i j
     loop (j.val + 1) (by omega) bound 1
-  where loop (j: Nat) (h: j < grid.nCols) (bound: Fin 10) (dist: Nat): Nat :=
-    let fj: Fin grid.nCols := ⟨j, h⟩
-    if h: j + 1 = grid.nCols then
+  where loop (j: Nat) (h: j < nCols) (bound: Fin 10) (dist: Nat): Nat :=
+    let fj: Fin nCols := ⟨j, h⟩
+    if h: j + 1 = nCols then
       dist
     else if bound ≤ grid.get i fj then
       dist
     else
       loop (j + 1) (by omega) bound (dist + 1)
 
-def viewingDistanceUp (grid: Grid2D (Fin 10)) (i: Fin grid.nRows) (j: Fin grid.nCols): Nat :=
+def viewingDistanceUp (grid: Grid2D (Fin 10) nRows nCols) (i: Fin nRows) (j: Fin nCols): Nat :=
   if i.val == 0 then
     0
   else
     let bound := grid.get i j
     loop (i.val - 1) (by omega) bound 1
-  where loop (i: Nat) (h: i < grid.nRows) (bound: Fin 10) (dist: Nat): Nat :=
-    let fi: Fin grid.nRows := ⟨i, h⟩
+  where loop (i: Nat) (h: i < nRows) (bound: Fin 10) (dist: Nat): Nat :=
+    let fi: Fin nRows := ⟨i, h⟩
     match i with
     | 0 => dist
     | Nat.succ im1 =>
@@ -84,15 +84,15 @@ def viewingDistanceUp (grid: Grid2D (Fin 10)) (i: Fin grid.nRows) (j: Fin grid.n
         dist
       else loop im1 (by omega) bound (dist + 1)
 
-def viewingDistanceDown (grid: Grid2D (Fin 10)) (i: Fin grid.nRows) (j: Fin grid.nCols): Nat :=
-  if h: i.val + 1 = grid.nRows then
+def viewingDistanceDown (grid: Grid2D (Fin 10) nRows nCols) (i: Fin nRows) (j: Fin nCols): Nat :=
+  if h: i.val + 1 = nRows then
     0
   else
     let bound := grid.get i j
     loop (i.val + 1) (by omega) bound 1
-  where loop (i: Nat) (h: i < grid.nRows) (bound: Fin 10) (dist: Nat): Nat :=
-    let fi: Fin grid.nRows := ⟨i, h⟩
-    if h: i + 1 = grid.nRows then
+  where loop (i: Nat) (h: i < nRows) (bound: Fin 10) (dist: Nat): Nat :=
+    let fi: Fin nRows := ⟨i, h⟩
+    if h: i + 1 = nRows then
       dist
     else if bound ≤ grid.get fi j then
       dist
@@ -101,17 +101,17 @@ def viewingDistanceDown (grid: Grid2D (Fin 10)) (i: Fin grid.nRows) (j: Fin grid
 
 def part1Solution(input: String): Result Nat :=
   let grid := parseDigitGrid input
-  grid.map ( fun grid =>
+  grid.map ( fun ⟨_, _, grid⟩ =>
     let tc :=  grid.foldCols countTreesInCol (grid.foldRows countTreesInRow TreeCount.empty)
     tc.seen.size
   )
 
 def part2Solution(input: String): Result Nat :=
   let grid := parseDigitGrid input
-  grid.map ( fun grid =>
-    Fin.foldl grid.nRows (
+  grid.map ( fun ⟨nRows, nCols, grid⟩ =>
+    Fin.foldl nRows (
       fun acc i =>
-        Fin.foldl grid.nCols (
+        Fin.foldl nCols (
           fun acc j =>
             let a := viewingDistanceDown grid i j
             let b := viewingDistanceLeft grid i j
