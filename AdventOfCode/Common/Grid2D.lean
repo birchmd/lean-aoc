@@ -7,9 +7,6 @@ notation (name := nineDigit) "nineDigit!" => 57
 structure Grid2D α (nRows: Nat) (nCols: Nat) where
   inner: Vector α (nRows * nCols)
 
-instance [ToString α] : ToString (Grid2D α nRows nCols) where
-  toString grid := s!"Grid ({nRows}x{nCols}) {grid.inner.toArray}"
-
 structure Grid2D.Position (grid: Grid2D α nRows nCols) where
   i: Nat
   j: Nat
@@ -163,3 +160,10 @@ def Grid2D.find? (grid: Grid2D α nRows nCols) (f: α → Bool): Option (grid.Po
   let index ← grid.inner.findFinIdx? f
   let ⟨i, j⟩ := lin_index_to_row_col index
   pure ⟨i.val, j.val, i.is_lt, j.is_lt⟩
+
+instance [ToString α] : ToString (Grid2D α nRows nCols) where
+  toString grid := grid.foldRows (
+    fun acc row =>
+      let r := row.foldl (fun acc x => s!"{acc}{x} ") ""
+      s!"{acc}{r}\n"
+  ) ""
