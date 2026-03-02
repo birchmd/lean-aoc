@@ -1,3 +1,4 @@
+import AdventOfCode.Common.Fin
 import AdventOfCode.Common.Result
 
 notation (name := newLine) "newLine!" => 10
@@ -62,16 +63,9 @@ theorem row_in_bounds (i n m: Nat) (m_not_zero: 0 < m) (i_lt: i < n * m): i / m 
   rw [Nat.mul_div_cancel n m_not_zero] at h2
   exact h2
 
--- If we have an element of `Fin n` then `n` cannot be zero.
-theorem have_index_means_non_empty (index: Fin n): 0 < n := by
-  let m := index.val
-  have h1: m < n := index.is_lt
-  have h2: 0 ≤ m := Nat.zero_le m
-  omega
-
 -- Convert a linearized index into a row, column pair.
 def lin_index_to_row_col (index: Fin (n * m)): (Fin n) × (Fin m) :=
-  have h1: 0 < n * m := have_index_means_non_empty index
+  have h1: 0 < n * m := Fin.have_fin_means_non_empty index
   have h2: 0 < m := by grind
   let i := ⟨index / m, row_in_bounds index n m h2 index.is_lt⟩
   let j := ⟨index % m, Nat.mod_lt index h2⟩

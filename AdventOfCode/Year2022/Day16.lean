@@ -1,3 +1,4 @@
+import AdventOfCode.Common.Fin
 import AdventOfCode.Common.Result
 import AdventOfCode.Common.Grid2D
 import Std.Data.HashMap
@@ -37,17 +38,12 @@ def parseLine(n: Nat) (indices: Std.HashMap String.Slice Nat) (line: String.Slic
     let ns ← neighbours
     pure ⟨r, ns⟩
 
-def wrappingSucc (i: Fin n): Fin n :=
-  let j := i.val + 1
-  if h: j < n then ⟨j, h⟩
-  else ⟨0, have_index_means_non_empty i⟩
-
 def buildCave (indices: Std.HashMap String.Slice Nat) (state: (Fin n) × (Cave n)) (line: String.Slice): Result ((Fin n) × (Cave n)):=
   let ⟨i, cave⟩ := state
   (parseLine n indices line).map (
     fun ⟨rate, ns⟩ =>
       let cave: Cave n := ⟨cave.flowRates.set i rate, cave.distances, cave.neighbours.set i ns⟩
-      ⟨wrappingSucc i, cave⟩
+      ⟨i.wrappingSucc, cave⟩
   )
 
 def fillDistances (cave: Cave n): Cave n :=
