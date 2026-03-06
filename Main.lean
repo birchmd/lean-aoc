@@ -1,6 +1,6 @@
-import AdventOfCode.Year2022.Day20
+import AdventOfCode.Year2022.Day21
 
-def inputIO: IO String := IO.FS.readFile ".data/2022/day20.txt"
+def inputIO: IO String := IO.FS.readFile ".data/2022/day21.txt"
 
 def main : IO Unit := do
   let s1 <- inputIO.map part1Solution
