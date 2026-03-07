@@ -24,6 +24,9 @@ structure Grid2D.Row α nRows nCols where
   i: Nat
   row_in_bounds: i < nRows
 
+def Grid2D.cast (grid: Grid2D α n m) (h: n = n' ∧ m = m'): Grid2D α n' m' :=
+  ⟨grid.inner.cast (by grind)⟩
+
 def parseDigit (byte: UInt8): Result (Fin 10) :=
   let x := byte.toNat
   if h: zeroDigit! ≤ x ∧ x ≤ nineDigit! then

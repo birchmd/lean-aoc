@@ -10,6 +10,13 @@ def Fin.wrappingSucc (i: Fin n): Fin n :=
   if h: j < n then ⟨j, h⟩
   else ⟨0, have_fin_means_non_empty i⟩
 
+def Fin.wrappingPred (i: Fin n): Fin n :=
+  have h: 0 < n := have_fin_means_non_empty i
+  if i.val = 0 then ⟨n - 1, by omega⟩
+  else
+    let j := i.val - 1
+    ⟨j, by omega⟩
+
 theorem mod_in_bounds (a b: Nat) (h: b ≠ 0): a % b < b := by
   let c := a % b
   have h1: a % b = c := by trivial
