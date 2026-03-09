@@ -9,8 +9,8 @@ inductive WindDirection where
 def parseWind (line: String.Slice): Result (Array WindDirection) :=
   let mapped := line.bytes.mapM (
     fun b =>
-      if b = 62 then Except.ok WindDirection.right
-      else if b = 60 then Except.ok WindDirection.left
+      if b = 62 then Result.ok WindDirection.right
+      else if b = 60 then Result.ok WindDirection.left
       else Except.error "Unknown wind symbol"
   )
   mapped.toArray

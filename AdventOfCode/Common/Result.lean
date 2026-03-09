@@ -9,6 +9,14 @@ instance : Bind Result where
 
 instance : Monad Result where
 
+instance : MonadAttach Result where
+  CanReturn x a :=
+    let y: ExceptT String Id _ := x
+    MonadAttach.CanReturn y a
+  attach x :=
+    let y: ExceptT String Id _ := x
+    MonadAttach.attach y
+
 instance [ToString α] : ToString (Result α) where
   toString r := match r with
   | Except.error e => e
@@ -16,3 +24,5 @@ instance [ToString α] : ToString (Result α) where
 
 def getOrErr (mx: Option α) (e: String): Result α :=
   (mx.map Except.ok).getD (Except.error e)
+
+def Result.ok (x: α): Result α := Except.ok x

@@ -23,7 +23,7 @@ def toBitSet(x: Fin 64): UInt64 :=
 def containedChars(compartment: String.Slice): UInt64 :=
   (compartment.bytes.map (fun x => x.toNat |> remapBytes |> toBitSet)).fold (fun x y => x ||| y) 0
 
-def findCommon [Std.Iterators.Iterator α Id String.Slice] (lines: Std.Iter (α := α) (String.Slice)): Nat :=
+def findCommon [Std.Iterator α Id String.Slice] (lines: Std.Iter (α := α) (String.Slice)): Nat :=
   ((lines.map containedChars).fold (fun x y => x &&& y) u64Max).log2.toNat
 
 def findCommonInCompartments(line: String.Slice): Nat :=
