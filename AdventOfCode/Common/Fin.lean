@@ -5,6 +5,15 @@ theorem Fin.have_fin_means_non_empty (index: Fin n): 0 < n := by
   have h2: 0 ≤ m := Nat.zero_le m
   omega
 
+def Fin.saturatingSucc (i: Fin n): Fin n :=
+  let j := i.val + 1
+  if h: j < n then ⟨j, h⟩
+  else ⟨n - 1, by omega⟩
+
+def Fin.saturatingPred (i: Fin n): Fin n :=
+  let j := i.val - 1
+  ⟨j, by omega⟩
+
 def Fin.wrappingSucc (i: Fin n): Fin n :=
   let j := i.val + 1
   if h: j < n then ⟨j, h⟩
